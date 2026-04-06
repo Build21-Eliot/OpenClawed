@@ -1,9 +1,9 @@
 # openclaw-claude-code-adapter
 
+Educational only. Not official; use at your own risk.
 
----
+## Setup
 
-## Before anything else: Claude Code
 1. [Claude Code](https://code.claude.com/docs) installed and signed in.
 2. [Node.js](https://nodejs.org) 20+ (LTS).
 3. Get the code — pick **one**:
@@ -16,9 +16,6 @@
    ```
 
    **Download ZIP** (no Git): [download main branch](https://github.com/Build21-Eliot/OpenClawed/archive/refs/heads/main.zip) → unzip → `cd` into the `OpenClawed-main` folder (name may vary).
-
-
-Pick one:
 
 ## Run
 
