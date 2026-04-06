@@ -1,0 +1,1 @@
+Optional follow-up (not required for OpenClaw): if you outgrow an OpenAI-compatible HTTP proxy, implement an OpenClaw provider plugin with createStreamFn per https://docs.openclaw.ai/plugins/sdk-provider-plugins
