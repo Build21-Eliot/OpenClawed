@@ -45,13 +45,32 @@ export type RunClaudeOptions = {
   cwd: string;
   bare: boolean;
   prompt: string;
+  /** Passed as `--permission-mode`. Default should avoid interactive approval stalls in `-p`. */
+  permissionMode?: string;
+  /** Passed as `--allowedTools` (comma-separated list or Claude rule string). */
+  allowedTools?: string;
+  /** Passed as `--tools` (e.g. `default` = all built-in tools). */
+  tools?: string;
 };
+
+function pushClaudeSessionFlags(args: string[], options: RunClaudeOptions): void {
+  if (options.permissionMode) {
+    args.push("--permission-mode", options.permissionMode);
+  }
+  if (options.allowedTools) {
+    args.push("--allowedTools", options.allowedTools);
+  }
+  if (options.tools) {
+    args.push("--tools", options.tools);
+  }
+}
 
 export async function runClaudeOnce(options: RunClaudeOptions): Promise<string> {
   const args: string[] = [];
   if (options.bare) {
     args.push("--bare");
   }
+  pushClaudeSessionFlags(args, options);
   args.push("-p", options.prompt);
   args.push("--output-format", "json");
 
@@ -137,6 +156,7 @@ export async function* runClaudeStream(
   if (options.bare) {
     args.push("--bare");
   }
+  pushClaudeSessionFlags(args, options);
   args.push("-p", options.prompt);
   args.push("--output-format", "stream-json", "--verbose", "--include-partial-messages");
 

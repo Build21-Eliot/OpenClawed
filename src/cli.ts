@@ -24,12 +24,18 @@ function envBool(key: string, defaultValue: boolean): boolean {
 }
 
 const host = envString("OPENCLAW_CLAUDE_ADAPTER_HOST", "127.0.0.1");
-const port = envInt("OPENCLAW_CLAUDE_ADAPTER_PORT", 18789);
+/** Default avoids OpenClaw’s gateway port (18789) — same port breaks WS health checks. */
+const port = envInt("OPENCLAW_CLAUDE_ADAPTER_PORT", 18889);
 const modelId = envString("OPENCLAW_CLAUDE_ADAPTER_MODEL", "claude-code-local");
 const claudeBinary = envString("CLAUDE_BIN", "claude");
 const cwd = envString("OPENCLAW_CLAUDE_ADAPTER_CWD", process.cwd());
 /** Default false: normal Claude Code auth. true: --bare (e.g. ANTHROPIC_API_KEY only). */
 const bare = envBool("OPENCLAW_CLAUDE_ADAPTER_BARE", false);
+/** Default `bypassPermissions` avoids headless stalls waiting for interactive tool approvals. */
+const permissionMode = envString("OPENCLAW_CLAUDE_ADAPTER_PERMISSION_MODE", "bypassPermissions");
+/** Default `default` = all built-in tools (`claude --help` → --tools). */
+const tools = envString("OPENCLAW_CLAUDE_ADAPTER_TOOLS", "default");
+const allowedTools = process.env.OPENCLAW_CLAUDE_ADAPTER_ALLOWED_TOOLS?.trim() || undefined;
 
 const server = createAdapterServer({
   host,
@@ -38,6 +44,9 @@ const server = createAdapterServer({
   claudeBinary,
   cwd,
   bare,
+  permissionMode,
+  tools,
+  allowedTools,
 });
 
 server.listen(port, host, () => {

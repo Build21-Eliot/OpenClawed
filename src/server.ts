@@ -10,6 +10,9 @@ export type AdapterEnv = {
   claudeBinary: string;
   cwd: string;
   bare: boolean;
+  permissionMode: string;
+  tools: string;
+  allowedTools?: string;
 };
 
 type ChatCompletionRequest = {
@@ -78,36 +81,72 @@ export function createAdapterServer(env: AdapterEnv): import("node:http").Server
   return server;
 }
 
+function normalizePathname(pathname: string): string {
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    return pathname.slice(0, -1);
+  }
+  return pathname || "/";
+}
+
+function sendModelsList(env: AdapterEnv, res: import("node:http").ServerResponse, method: string): void {
+  const created = Math.floor(Date.now() / 1000);
+  const body = {
+    object: "list",
+    data: [
+      {
+        id: env.modelId,
+        object: "model",
+        created,
+        owned_by: "openclaw-claude-code-adapter",
+      },
+    ],
+  };
+  const payload = JSON.stringify(body);
+  if (method === "HEAD") {
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Length": Buffer.byteLength(payload),
+    });
+    res.end();
+    return;
+  }
+  json(res, 200, body);
+}
+
 async function handleRequest(
   env: AdapterEnv,
   req: import("node:http").IncomingMessage,
   res: import("node:http").ServerResponse,
 ): Promise<void> {
   const url = new URL(req.url ?? "/", `http://${env.host}`);
+  const method = req.method ?? "GET";
+  const p = normalizePathname(url.pathname);
 
-  if (req.method === "GET" && (url.pathname === "/health" || url.pathname === "/")) {
-    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-    res.end("ok");
-    return;
+  if (method === "GET" || method === "HEAD") {
+    if (p === "/health" || p === "/") {
+      if (method === "HEAD") {
+        res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end();
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("ok");
+      return;
+    }
+
+    if (p === "/v1/models" || p === "/models" || p === "/v1/v1/models" || p === "/v1") {
+      sendModelsList(env, res, method);
+      return;
+    }
   }
 
-  if (req.method === "GET" && url.pathname === "/v1/models") {
-    const created = Math.floor(Date.now() / 1000);
-    json(res, 200, {
-      object: "list",
-      data: [
-        {
-          id: env.modelId,
-          object: "model",
-          created,
-          owned_by: "openclaw-claude-code-adapter",
-        },
-      ],
-    });
-    return;
-  }
+  // OpenClaw resolves `new URL("chat/completions", base + "/")` → /chat/completions when base has no /v1.
+  const isChatCompletions =
+    p === "/chat/completions" ||
+    p === "/v1/chat/completions" ||
+    p === "/v1/v1/chat/completions";
 
-  if (req.method !== "POST" || url.pathname !== "/v1/chat/completions") {
+  if (method !== "POST" || !isChatCompletions) {
     openAiError(res, 404, "Not found");
     return;
   }
@@ -141,6 +180,9 @@ async function handleRequest(
     cwd: env.cwd,
     bare: env.bare,
     prompt,
+    permissionMode: env.permissionMode,
+    tools: env.tools,
+    allowedTools: env.allowedTools,
   };
 
   if (!stream) {
