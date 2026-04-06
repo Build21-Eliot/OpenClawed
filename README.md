@@ -1,5 +1,7 @@
 # openclaw-claude-code-adapter
 
+Wraps the local **Claude Code** CLI (`claude`) as a small **OpenAI-compatible** HTTP API (`/v1/chat/completions`, etc.) so apps like **OpenClaw** can use it as a custom model provider.
+
 Educational only. Not official; use at your own risk.
 
 ## Setup
